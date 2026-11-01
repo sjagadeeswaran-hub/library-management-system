@@ -1,0 +1,6 @@
+{
+  "name": "LibroFlow - Library Management System",
+  "description": "Comprehensive library management system for universities and colleges to manage catalog, students, book issues, returns, fines, and analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

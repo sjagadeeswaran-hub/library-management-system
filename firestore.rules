@@ -1,0 +1,155 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    function incoming() {
+      return request.resource.data;
+    }
+    function existing() {
+      return resource.data;
+    }
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isEmailVerified() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com');
+    }
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'sjagadees59@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+    function isLibrarian() {
+      return isSignedIn() && (
+        isAdmin() ||
+        exists(/databases/$(database)/documents/librarians/$(request.auth.uid))
+      );
+    }
+    function isStaff() {
+      return isAdmin() || isLibrarian();
+    }
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidBook(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() <= 256 &&
+             data.author is string && data.author.size() > 0 && data.author.size() <= 256 &&
+             data.isbn is string && data.isbn.size() > 0 && data.isbn.size() <= 32 &&
+             data.category is string && data.category.size() <= 128 &&
+             data.totalCopies is number && data.totalCopies >= 0 &&
+             data.availableCopies is number && data.availableCopies >= 0 &&
+             data.availableCopies <= data.totalCopies;
+    }
+
+    function isValidStudent(data) {
+      return data.studentId is string && data.studentId.size() > 0 && data.studentId.size() <= 64 &&
+             data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 128 &&
+             data.email is string && data.email.size() > 0 && data.email.size() <= 256 &&
+             data.department is string && data.department.size() <= 128 &&
+             data.course is string && data.course.size() <= 128;
+    }
+
+    function isValidBorrowRecord(data) {
+      return data.recordId is string && data.recordId.size() > 0 && data.recordId.size() <= 64 &&
+             data.studentId is string && data.studentId.size() > 0 && data.studentId.size() <= 64 &&
+             data.bookId is string && data.bookId.size() > 0 && data.bookId.size() <= 64 &&
+             data.issueDate is string && data.issueDate.size() <= 64 &&
+             data.dueDate is string && data.dueDate.size() <= 64 &&
+             data.status in ['borrowed', 'returned', 'overdue'];
+    }
+
+    function isValidNotification(data) {
+      return data.title is string && data.title.size() <= 256 &&
+             data.message is string && data.message.size() <= 1024 &&
+             data.type in ['due_soon', 'overdue', 'issued', 'returned', 'fine', 'system'] &&
+             data.read is bool;
+    }
+
+    function isValidSetting(data) {
+      return data.fineRatePerDay is number && data.fineRatePerDay >= 0 &&
+             data.maxBorrowDays is number && data.maxBorrowDays >= 1 &&
+             data.maxBooksPerStudent is number && data.maxBooksPerStudent >= 1;
+    }
+
+    // Admins registry
+    match /admins/{adminId} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin() && isValidId(adminId);
+    }
+
+    // Librarians registry
+    match /librarians/{librarianId} {
+      allow get: if isSignedIn();
+      allow list: if isStaff();
+      allow create, update, delete: if isAdmin() && isValidId(librarianId);
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow get: if isSignedIn() && (isOwner(userId) || isStaff());
+      allow list: if isStaff();
+      allow create: if isOwner(userId) && isValidId(userId);
+      allow update: if (isOwner(userId) || isAdmin()) && isValidId(userId);
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // Book catalog: public catalog search & browsing, write protected by staff
+    match /books/{bookId} {
+      allow get, list: if true;
+      allow create: if isStaff() && isValidId(bookId) && isValidBook(incoming());
+      allow update: if isStaff() && isValidId(bookId) && isValidBook(incoming());
+      allow delete: if isAdmin() && isValidId(bookId);
+    }
+
+    // Student roster: private patron PII protected by staff credentials
+    match /students/{studentId} {
+      allow get: if isSignedIn() && (isStaff() || (resource.data.email == request.auth.token.email));
+      allow list: if isStaff();
+      allow create: if isStaff() && isValidId(studentId) && isValidStudent(incoming());
+      allow update: if isStaff() && isValidId(studentId) && isValidStudent(incoming());
+      allow delete: if isAdmin() && isValidId(studentId);
+    }
+
+    // Borrowing records: staff or owning student
+    match /borrow_records/{recordId} {
+      allow get: if isSignedIn() && (isStaff() || (resource.data.studentEmail == request.auth.token.email));
+      allow list: if isSignedIn() && (isStaff() || (resource.data.studentEmail == request.auth.token.email));
+      allow create: if isStaff() && isValidId(recordId) && isValidBorrowRecord(incoming());
+      allow update: if isStaff() && isValidId(recordId) && isValidBorrowRecord(incoming()) && incoming().recordId == existing().recordId;
+      allow delete: if isAdmin() && isValidId(recordId);
+    }
+
+    // Notifications: recipient user or staff
+    match /notifications/{notificationId} {
+      allow get, list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.userEmail == request.auth.token.email ||
+        isStaff()
+      );
+      allow create: if isStaff() && isValidId(notificationId) && isValidNotification(incoming());
+      allow update: if isSignedIn() && isValidId(notificationId) && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.userEmail == request.auth.token.email ||
+        isStaff()
+      );
+      allow delete: if isStaff() && isValidId(notificationId);
+    }
+
+    // Settings: public library info, write protected by admin
+    match /settings/{settingId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin() && isValidId(settingId) && isValidSetting(incoming());
+    }
+  }
+}

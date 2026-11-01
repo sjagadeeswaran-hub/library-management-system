@@ -1,0 +1,181 @@
+{
+  "entities": {
+    "userProfile": {
+      "title": "UserProfile",
+      "description": "User profile with system role and details",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "photoURL": { "type": "string", "maxLength": 1024 },
+        "role": { "type": "string", "enum": ["admin", "librarian", "student"] },
+        "studentId": { "type": "string", "maxLength": 64 },
+        "department": { "type": "string", "maxLength": 128 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "admin": {
+      "title": "Admin",
+      "description": "Admin authorization entry",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["uid", "email"]
+    },
+    "librarian": {
+      "title": "Librarian",
+      "description": "Librarian authorization entry",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "fullName": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["uid", "email"]
+    },
+    "book": {
+      "title": "Book",
+      "description": "Library book catalog entry",
+      "type": "object",
+      "properties": {
+        "bookId": { "type": "string", "maxLength": 64 },
+        "isbn": { "type": "string", "maxLength": 32 },
+        "title": { "type": "string", "maxLength": 256 },
+        "author": { "type": "string", "maxLength": 256 },
+        "publisher": { "type": "string", "maxLength": 256 },
+        "publicationYear": { "type": "number" },
+        "category": { "type": "string", "maxLength": 128 },
+        "totalCopies": { "type": "number" },
+        "availableCopies": { "type": "number" },
+        "shelfLocation": { "type": "string", "maxLength": 64 },
+        "coverUrl": { "type": "string", "maxLength": 1024 },
+        "description": { "type": "string", "maxLength": 2048 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["bookId", "isbn", "title", "author", "category", "totalCopies", "availableCopies"]
+    },
+    "student": {
+      "title": "Student",
+      "description": "Registered student information",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "maxLength": 64 },
+        "fullName": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "department": { "type": "string", "maxLength": 128 },
+        "course": { "type": "string", "maxLength": 128 },
+        "registrationDate": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "enum": ["active", "suspended", "graduated"] },
+        "activeBorrowCount": { "type": "number" },
+        "totalFinesUnpaid": { "type": "number" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["studentId", "fullName", "email", "department", "course"]
+    },
+    "borrowRecord": {
+      "title": "BorrowRecord",
+      "description": "Book borrowing and return record",
+      "type": "object",
+      "properties": {
+        "recordId": { "type": "string", "maxLength": 64 },
+        "studentId": { "type": "string", "maxLength": 64 },
+        "studentName": { "type": "string", "maxLength": 128 },
+        "studentEmail": { "type": "string", "maxLength": 256 },
+        "bookId": { "type": "string", "maxLength": 64 },
+        "bookTitle": { "type": "string", "maxLength": 256 },
+        "bookIsbn": { "type": "string", "maxLength": 32 },
+        "issueDate": { "type": "string", "maxLength": 64 },
+        "dueDate": { "type": "string", "maxLength": 64 },
+        "returnDate": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "enum": ["borrowed", "returned", "overdue"] },
+        "overdueDays": { "type": "number" },
+        "fineRatePerDay": { "type": "number" },
+        "fineAmount": { "type": "number" },
+        "finePaid": { "type": "boolean" },
+        "issuedBy": { "type": "string", "maxLength": 128 },
+        "returnedBy": { "type": "string", "maxLength": 128 },
+        "notes": { "type": "string", "maxLength": 1024 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["recordId", "studentId", "bookId", "issueDate", "dueDate", "status"]
+    },
+    "notification": {
+      "title": "Notification",
+      "description": "User notification regarding library activities",
+      "type": "object",
+      "properties": {
+        "notificationId": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 256 },
+        "title": { "type": "string", "maxLength": 256 },
+        "message": { "type": "string", "maxLength": 1024 },
+        "type": { "type": "string", "enum": ["due_soon", "overdue", "issued", "returned", "fine", "system"] },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["notificationId", "title", "message", "type", "read"]
+    },
+    "librarySetting": {
+      "title": "LibrarySetting",
+      "description": "Global settings for borrowing and fines",
+      "type": "object",
+      "properties": {
+        "settingId": { "type": "string", "maxLength": 64 },
+        "fineRatePerDay": { "type": "number" },
+        "maxBorrowDays": { "type": "number" },
+        "maxBooksPerStudent": { "type": "number" },
+        "libraryName": { "type": "string", "maxLength": 256 },
+        "contactEmail": { "type": "string", "maxLength": 256 },
+        "allowStudentReservation": { "type": "boolean" },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["settingId", "fineRatePerDay", "maxBorrowDays", "maxBooksPerStudent"]
+    }
+  },
+  "firestore": {
+    "/admins/{adminId}": {
+      "schema": "admin",
+      "description": "Admin authorization records"
+    },
+    "/librarians/{librarianId}": {
+      "schema": "librarian",
+      "description": "Librarian staff authorization records"
+    },
+    "/users/{userId}": {
+      "schema": "userProfile",
+      "description": "User profiles and assigned roles"
+    },
+    "/books/{bookId}": {
+      "schema": "book",
+      "description": "Library book catalog"
+    },
+    "/students/{studentId}": {
+      "schema": "student",
+      "description": "Student information and library status"
+    },
+    "/borrow_records/{recordId}": {
+      "schema": "borrowRecord",
+      "description": "Borrowing and return transactions"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "notification",
+      "description": "Notifications for upcoming due dates, returns, and fines"
+    },
+    "/settings/{settingId}": {
+      "schema": "librarySetting",
+      "description": "Configurable library rules, fines, and defaults"
+    }
+  }
+}
